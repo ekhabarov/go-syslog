@@ -66,3 +66,11 @@ func WithRFC3339() syslog.MachineOption {
 		return m
 	}
 }
+
+// WithYearInTS tells whether to expect a year in timestamp of the RFC 3164 syslog message.
+func WithYearInTS() syslog.MachineOption {
+	return func(m syslog.Machine) syslog.Machine {
+		m.(*machine).WithYearInTS()
+		return m
+	}
+}
