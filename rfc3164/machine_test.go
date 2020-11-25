@@ -145,6 +145,23 @@ var testCases = []testCase{
 			},
 		},
 	},
+	{
+		[]byte(`<34>Aug  7 2020 06:30:00 xxx aaa: Year in TS`),
+		true,
+		&SyslogMessage{
+			Base: syslog.Base{
+				Priority:  syslogtesting.Uint8Address(34),
+				Severity:  syslogtesting.Uint8Address(2),
+				Facility:  syslogtesting.Uint8Address(4),
+				Timestamp: syslogtesting.TimeParse(stampWithYear, "Aug  7 2020 06:30:00"),
+				Hostname:  syslogtesting.StringAddress("xxx"),
+				Appname:   syslogtesting.StringAddress("aaa"),
+				Message:   syslogtesting.StringAddress(`Year in TS`),
+			},
+		},
+		"",
+		nil,
+	},
 	// todo > other test cases pleaaaase
 }
 
@@ -154,8 +171,8 @@ func TestMachineParse(t *testing.T) {
 		t.Run(syslogtesting.RightPad(string(tc.input), 50), func(t *testing.T) {
 			t.Parallel()
 
-			message, merr := NewMachine().Parse(tc.input)
-			partial, perr := NewMachine(WithBestEffort()).Parse(tc.input)
+			message, merr := NewMachine(WithYearInTS()).Parse(tc.input)
+			partial, perr := NewMachine(WithBestEffort(), WithYearInTS()).Parse(tc.input)
 
 			if !tc.valid {
 				assert.Nil(t, message)

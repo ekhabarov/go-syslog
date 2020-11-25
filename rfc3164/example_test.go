@@ -1,8 +1,6 @@
 package rfc3164
 
 import (
-	// "time"
-
 	"time"
 
 	"github.com/davecgh/go-spew/spew"
@@ -181,6 +179,27 @@ func Example_stamp_also_when_rfc3339() {
 	//   ProcID: (*string)((len=5) "23410"),
 	//   MsgID: (*string)(<nil>),
 	//   Message: (*string)((len=4) "Test")
+	//  }
+	// })
+}
+
+func Example_with_year_in_timestamp() {
+	i := []byte(`<28>Dec  2 2020 16:49:23 host app[23414]: Test with year in timestamp`)
+	p := NewParser(WithYearInTS())
+	m, _ := p.Parse(i)
+	output(m)
+	// Output:
+	// (*rfc3164.SyslogMessage)({
+	//  Base: (syslog.Base) {
+	//   Facility: (*uint8)(3),
+	//   Severity: (*uint8)(4),
+	//   Priority: (*uint8)(28),
+	//   Timestamp: (*time.Time)(2020-12-02 16:49:23 +0000 UTC),
+	//   Hostname: (*string)((len=4) "host"),
+	//   Appname: (*string)((len=3) "app"),
+	//   ProcID: (*string)((len=5) "23414"),
+	//   MsgID: (*string)(<nil>),
+	//   Message: (*string)((len=27) "Test with year in timestamp")
 	//  }
 	// })
 }

@@ -12,12 +12,15 @@ var (
 	errPrival         = "expecting a priority value in the range 1-191 or equal to 0 [col %d]"
 	errPri            = "expecting a priority value within angle brackets [col %d]"
 	errTimestamp      = "expecting a Stamp timestamp [col %d]"
+	errTimestampy     = "expecting a year in timestamp [col %d]"
 	errRFC3339        = "expecting a Stamp or a RFC3339 timestamp [col %d]"
 	errHostname       = "expecting an hostname (from 1 to max 255 US-ASCII characters) [col %d]"
 	errTag            = "expecting an alphanumeric tag (max 32 characters) [col %d]"
 	errContentStart   = "expecting a content part starting with a non-alphanumeric character [col %d]"
 	errContent        = "expecting a content part composed by visible characters only [col %d]"
 	errParse          = "parsing error [col %d]"
+
+	stampWithYear     = "Jan _2 2006 15:04:05"
 )
 
 %%{
@@ -47,6 +50,23 @@ action set_timestamp {
 			t, _ = time.ParseInLocation(time.Stamp, string(m.text()), m.timezone)
 		}
 		output.timestamp = t.AddDate(m.yyyy, 0, 0)
+		if m.loc != nil {
+			output.timestamp = output.timestamp.In(m.loc)
+		}
+		output.timestampSet = true
+	}
+}
+
+action set_timestampy {
+	if t, e := time.Parse(stampWithYear, string(m.text())); e != nil {
+		m.err = fmt.Errorf("%s [col %d]", e, m.p)
+		fhold;
+		fgoto fail;
+	} else {
+		if m.timezone != nil {
+			t, _ = time.ParseInLocation(stampWithYear, string(m.text()), m.timezone)
+		}
+    output.timestamp = t
 		if m.loc != nil {
 			output.timestamp = output.timestamp.In(m.loc)
 		}
@@ -99,6 +119,12 @@ action err_timestamp {
 	fgoto fail;
 }
 
+action err_timestampy {
+	m.err = fmt.Errorf(errTimestampy, m.p)
+	fhold;
+	fgoto fail;
+}
+
 action err_rfc3339 {
 	m.err = fmt.Errorf(errRFC3339, m.p)
 	fhold;
@@ -132,6 +158,7 @@ action err_content {
 pri = ('<' prival >mark %from(set_prival) $err(err_prival) '>') @err(err_pri);
 
 timestamp = (datemmm sp datemday sp hhmmss) >mark %set_timestamp @err(err_timestamp);
+timestampy = (datemmm sp datemday sp datefullyear sp hhmmss) >mark %set_timestampy @err(err_timestampy);
 
 rfc3339 = fulldate >mark 'T' hhmmss timeoffset %set_rfc3339 @err(err_rfc3339);
 
@@ -158,7 +185,7 @@ msg = (tag content? ':' sp)? mex;
 
 fail := (any - [\n\r])* @err{ fgoto main; };
 
-main := pri (timestamp | (rfc3339 when { m.rfc3339 })) sp hostname sp msg;
+main := pri (timestamp | (rfc3339 when { m.rfc3339 }) | (timestampy when { m.yearts })) sp hostname sp msg;
 
 }%%
 
@@ -173,6 +200,7 @@ type machine struct {
 	bestEffort   bool
 	yyyy         int
 	rfc3339      bool
+	yearts       bool
 	loc          *time.Location
 	timezone     *time.Location
 }
@@ -207,6 +235,11 @@ func (m *machine) HasBestEffort() bool {
 // WithYear sets the year for the Stamp timestamp of the RFC 3164 syslog message.
 func (m *machine) WithYear(o YearOperator) {
 	m.yyyy = YearOperation{o}.Operate()
+}
+
+// WithYearInTS tells whether to expect a year in timestamp of the RFC 3164 syslog message.
+func (m *machine) WithYearInTS() {
+  m.yearts = true
 }
 
 // WithTimezone sets the time zone for the Stamp timestamp of the RFC 3164 syslog message.
